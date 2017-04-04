@@ -14,7 +14,7 @@ import logging
 import logging.handlers
 
 
-snapshots = ('20160409143852', '20160306075738', '20160208072304', '20151023164622', '20150827141633', '20150706001945')
+snapshots = ('20110501062202', '20110217075705', '20110219070143', '20110320183632', '20110424010825', '20110601200410', '20110528043050', '20110628175310', '20110802083628', '20111009073439', '20111222084519', '20120222064808', '20120204001751', '20120312204721', '20120704232358', '20120423135855', '20120424191112', '20120711162113', '20120911141653', '20121111145115', '20130118111200', '20130425104951', '20130614095358', '20140126200211', '20140110234117', '20140330044628', '20140401152308', '20141218055018', '20150706001945', '20150827141633', '20151023164622', '20160208072304', '20160306075738', '20160409143852')
 
 all_posts_list = list()
 
@@ -74,14 +74,38 @@ def get_posts():
             else:
                 logging.info('no need parse %s' % tf)
             time.sleep(3)
+            
+def get_posts_new():
+    while True:
+        for i in range(1004):
+            tf = 'data/posts_new/post_%d' % i
+            if not os.path.exists(tf):
+                url = 'https://web.archive.org/web/http://qiang.ws/?p=%d' % i
+                logging.info('get %s' % url)
+                code, html = getHtml(url)
+                logging.debug(code)
+                logging.debug(html)
+                if code == 200:
+                    with open(tf, 'wb') as f:
+                        f.write(html)
+                        f.close()
+                elif code == 404:
+                    with open(tf, 'wb') as f:
+                        f.write('404')
+                        f.close()
+                else:
+                    logging.error('request %s fail' % url)
+            else:
+                logging.info('no need parse %s' % tf)
+            time.sleep(1)
 
 
 def get_pages():
     while True:
         for i in range(1,38):
-            tf = 'data/pages/page_%d' % i
-            if not os.path.exists(tf):
-                for snapshot in snapshots:
+            for snapshot in snapshots:
+                tf = 'data/pages/page_%s_%d' % (snapshot, i)
+                if not os.path.exists(tf):
                     if i == 1:
                         url = 'https://web.archive.org/web/%s/http://qiang.ws/' % (snapshot)
                     else:
@@ -105,8 +129,8 @@ def get_pages():
                             continue
                     else:
                         logging.error('request %s fail' % url)
-            else:
-                logging.info('no need parse %s' % tf)
+                else:
+                    logging.info('no need parse %s' % tf)
             time.sleep(3)
 
 
@@ -119,10 +143,12 @@ if __name__ == "__main__":
         os.mkdir('data/pages')
     if not os.path.exists('data/posts'):
         os.mkdir('data/posts')
+    if not os.path.exists('data/posts_new'):
+        os.mkdir('data/posts_new')
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     handler = logging.handlers.RotatingFileHandler('log/main.log', maxBytes=1024*1024*10, backupCount=0)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)-8s %(message)s'))
     logging.getLogger('').addHandler(handler)
 
@@ -131,10 +157,9 @@ if __name__ == "__main__":
     t = threading.Thread(target=get_pages, args=[])
     t.setDaemon(True)
     t.start()
-
+    
     t = threading.Thread(target=get_posts, args=[])
     t.setDaemon(True)
     t.start()
-
-    while True:
-        time.sleep(10)
+    
+    get_posts_new()
